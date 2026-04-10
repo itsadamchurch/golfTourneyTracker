@@ -57,14 +57,20 @@ const defaultScores = {
 const defaultPositions = Object.fromEntries(
   Object.keys(defaultScores).map((golfer) => [golfer, ""])
 );
+const defaultDetails = Object.fromEntries(
+  Object.keys(defaultScores).map((golfer) => [golfer, { status: "", rounds: "" }])
+);
 
 const storageKey = "masters-2026-pick-tracker";
 const positionKey = "masters-2026-pick-positions";
+const detailKey = "masters-2026-pick-details";
 const modeKey = "masters-2026-score-mode";
 const savedState = JSON.parse(localStorage.getItem(storageKey) || "null");
 const savedPositions = JSON.parse(localStorage.getItem(positionKey) || "null");
+const savedDetails = JSON.parse(localStorage.getItem(detailKey) || "null");
 const scores = { ...defaultScores, ...(savedState || {}) };
 const positions = { ...defaultPositions, ...(savedPositions || {}) };
+const details = { ...defaultDetails, ...(savedDetails || {}) };
 const savedMode = localStorage.getItem(modeKey) || "toPar";
 const espnLeaderboardUrl = "https://site.web.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga";
 
@@ -197,6 +203,41 @@ function parsePositionValue(competitor) {
   return value;
 }
 
+function parseStatusDetail(competitor) {
+  const status = competitor.status || {};
+  const state = status.type?.state;
+  const today = status.todayDetail ? `Today ${status.todayDetail}` : "";
+
+  if (state === "in") {
+    const hole = status.hole && status.hole > 0 ? `Hole ${status.hole}` : "";
+    const thru = status.thru && status.thru > 0 ? `Thru ${status.thru}` : "";
+    return [hole || thru, today].filter(Boolean).join(" | ") || "In Progress";
+  }
+
+  if (state === "pre") {
+    const tee = status.detail ? `Tee ${status.detail}` : "";
+    return [tee, today].filter(Boolean).join(" | ") || "Scheduled";
+  }
+
+  return [today, status.type?.shortDetail, status.detail].filter(Boolean)[0] || "";
+}
+
+function parseRoundDetails(competitor) {
+  const linescores = Array.isArray(competitor.linescores) ? competitor.linescores : [];
+  const roundParts = linescores.map((line) => {
+    const label = `R${line.period}`;
+    if (line.displayValue) return `${label} ${line.displayValue}`;
+    if (line.teeTime) {
+      const teeTime = new Date(line.teeTime);
+      const formatted = teeTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      return `${label} Tee ${formatted}`;
+    }
+    return "";
+  }).filter(Boolean);
+
+  return roundParts.join(" | ");
+}
+
 async function fetchEspnScores() {
   const loadingCopy = isInitialLoad
     ? "Pulling the latest Masters numbers from ESPN and matching them to your picks."
@@ -237,10 +278,16 @@ async function fetchEspnScores() {
         )
       );
       const position = parsePositionValue(competitor);
+      const statusDetail = parseStatusDetail(competitor);
+      const roundDetails = parseRoundDetails(competitor);
 
       if (!pickName || value === null) return;
       scores[pickName] = value;
       positions[pickName] = position;
+      details[pickName] = {
+        status: statusDetail,
+        rounds: roundDetails
+      };
       matched += 1;
     });
 
@@ -280,6 +327,7 @@ function formatTotal(value) {
 function storeState() {
   localStorage.setItem(storageKey, JSON.stringify(scores));
   localStorage.setItem(positionKey, JSON.stringify(positions));
+  localStorage.setItem(detailKey, JSON.stringify(details));
   localStorage.setItem(modeKey, scoreModeSelect.value);
   const stamp = new Date();
   lastSaved.textContent = stamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -298,6 +346,8 @@ function renderUsers() {
         <div>
           <span class="pick-name">${golfer}</span>
           <span class="pick-owner">${positions[golfer] ? `Standing ${positions[golfer]}` : "Standing -"}</span>
+          <span class="pick-detail">${details[golfer]?.status || "Status unavailable"}</span>
+          <span class="pick-detail rounds">${details[golfer]?.rounds || "Round details unavailable"}</span>
         </div>
         <span class="score-chip" aria-label="${golfer} score">${scores[golfer] === "" ? "-" : formatTotal(Number(scores[golfer]))}</span>
       </li>

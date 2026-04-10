@@ -512,6 +512,19 @@ h1 {
   margin-top: 2px;
 }
 
+.pick-detail {
+  display: block;
+  color: var(--ink);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+.pick-detail.rounds {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .score-chip {
   display: inline-flex;
   width: 100%;

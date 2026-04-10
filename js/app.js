@@ -191,6 +191,24 @@ function parseScoreValue(scoreDisplay) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseTotalScoreValue(competitor) {
+  const totalScore =
+    competitor.score?.displayValue ??
+    competitor.score?.value ??
+    competitor.score;
+
+  const parsedTotal = parseScoreValue(totalScore);
+  if (parsedTotal !== null) return parsedTotal;
+
+  const linescores = Array.isArray(competitor.linescores) ? competitor.linescores : [];
+  const parsedRounds = linescores
+    .map((line) => parseScoreValue(line.displayValue ?? line.value))
+    .filter((value) => value !== null);
+
+  if (!parsedRounds.length) return null;
+  return parsedRounds.reduce((sum, value) => sum + value, 0);
+}
+
 function parsePositionValue(competitor) {
   const statusPosition = competitor.status?.position;
   const raw =
@@ -286,13 +304,7 @@ async function fetchEspnScores() {
     competitors.forEach((competitor) => {
       const espnName = competitor.athlete && competitor.athlete.displayName;
       const pickName = espnName ? getBestMatchingGolfer(espnName) : null;
-      const value = parseScoreValue(
-        competitor.score && (
-          competitor.score.displayValue ??
-          competitor.score.value ??
-          competitor.score
-        )
-      );
+      const value = parseTotalScoreValue(competitor);
       const position = parsePositionValue(competitor);
       const statusDetail = parseStatusDetail(competitor);
       const roundDetails = parseRoundDetails(competitor);
@@ -379,7 +391,10 @@ function renderUsers() {
           <span class="pick-detail">${details[golfer]?.status || "Status unavailable"}</span>
           <span class="pick-detail rounds">${details[golfer]?.rounds || "Round details unavailable"}</span>
         </div>
-        <span class="score-chip" aria-label="${golfer} score">${scores[golfer] === "" ? "-" : formatTotal(Number(scores[golfer]))}</span>
+        <div class="score-field">
+          <span class="score-chip-label">Total</span>
+          <span class="score-chip" aria-label="${golfer} total score">${scores[golfer] === "" ? "-" : formatTotal(Number(scores[golfer]))}</span>
+        </div>
       </li>
     `).join("");
 

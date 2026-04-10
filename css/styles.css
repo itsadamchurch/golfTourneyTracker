@@ -542,6 +542,12 @@ h1 {
   font-size: 0.8rem;
 }
 
+.score-field {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
 .score-chip {
   display: inline-flex;
   width: 100%;
@@ -553,6 +559,14 @@ h1 {
   border: 1px solid rgba(36, 49, 38, 0.12);
   background: #fffaf0;
   font-weight: 700;
+}
+
+.score-chip-label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .footer-note {

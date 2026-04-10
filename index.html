@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masters 2026 Pick Tracker</title>
+  <style>
+    :root {
+      --bg: #ede1c4;
+      --paper: #f6edd7;
+      --paper-strong: #efe3c2;
+      --ink: #243126;
+      --muted: #6d6a56;
+      --line: rgba(36, 49, 38, 0.18);
+      --green: #3f5c3a;
+      --green-deep: #2e4630;
+      --gold: #a8833f;
+      --sand: #d8c49a;
+      --accent: #7f2f22;
+      --shadow: 0 18px 40px rgba(55, 42, 18, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.28), transparent 30%),
+        linear-gradient(180deg, rgba(216, 196, 154, 0.35), rgba(237, 225, 196, 0.92)),
+        repeating-linear-gradient(
+          0deg,
+          rgba(36, 49, 38, 0.02) 0,
+          rgba(36, 49, 38, 0.02) 1px,
+          transparent 1px,
+          transparent 5px
+        ),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .page {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(47, 73, 51, 0.96), rgba(36, 49, 38, 0.96)),
+        var(--green-deep);
+      color: #f8f1df;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 22px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border: 1px solid rgba(255, 241, 212, 0.18);
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      color: rgba(248, 241, 223, 0.78);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.3rem, 5vw, 4.5rem);
+      line-height: 0.94;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      max-width: 9ch;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: end;
+    }
+
+    .hero-brand {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .masters-mark {
+      width: 122px;
+      height: 122px;
+      flex: 0 0 auto;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(250, 241, 217, 0.16), rgba(250, 241, 217, 0.04));
+      border: 1px solid rgba(255, 241, 212, 0.18);
+      display: grid;
+      place-items: center;
+      padding: 10px;
+      box-shadow: inset 0 0 0 1px rgba(255, 241, 212, 0.08);
+    }
+
+    .masters-mark img {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 8px 12px rgba(8, 15, 12, 0.28));
+    }
+
+    .hero p {
+      margin: 16px 0 0;
+      max-width: 58ch;
+      color: rgba(248, 241, 223, 0.82);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(255, 246, 220, 0.18), transparent 28%),
+        rgba(26, 36, 28, 0.86);
+      backdrop-filter: blur(4px);
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .loading-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loading-card {
+      width: min(420px, 100%);
+      background: linear-gradient(180deg, #f4e8c9, #ead7b0);
+      color: var(--ink);
+      border-radius: 28px;
+      border: 1px solid rgba(36, 49, 38, 0.18);
+      box-shadow: 0 24px 60px rgba(12, 16, 13, 0.35);
+      padding: 28px 24px;
+      text-align: center;
+    }
+
+    .spinner {
+      position: relative;
+      width: 116px;
+      height: 116px;
+      margin: 0 auto 18px;
+      border-radius: 999px;
+      border: 3px solid rgba(63, 92, 58, 0.18);
+      background: radial-gradient(circle at 50% 45%, #f7f0df 0%, #e7d5aa 70%, #cfb37b 100%);
+      animation: float 1.8s ease-in-out infinite;
+    }
+
+    .spinner::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 999px;
+      border-top: 4px solid var(--green);
+      border-right: 4px solid transparent;
+      border-bottom: 4px solid var(--accent);
+      border-left: 4px solid transparent;
+      animation: spin 1s linear infinite;
+    }
+
+    .spinner::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -34px;
+      width: 8px;
+      height: 38px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: linear-gradient(180deg, #976f37, #704e21);
+      box-shadow: 0 0 0 4px rgba(112, 78, 33, 0.12);
+    }
+
+    .loading-title {
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .loading-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 14px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(36, 49, 38, 0.14);
+      background: rgba(255, 250, 240, 0.84);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--gold);
+    }
+
+    .status-badge.live .status-dot {
+      background: #3d8a4f;
+    }
+
+    .status-badge.error .status-dot {
+      background: #a6412d;
+    }
+
+    .stat {
+      background: rgba(255, 249, 236, 0.08);
+      border: 1px solid rgba(255, 249, 236, 0.12);
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: rgba(248, 241, 223, 0.62);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+    }
+
+    .panel {
+      background: rgba(246, 237, 215, 0.96);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1.45rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .panel-subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mode-select,
+    .score-input {
+      appearance: none;
+      border: 1px solid rgba(36, 49, 38, 0.18);
+      background: #fffaf0;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 12px 14px;
+      font: inherit;
+    }
+
+    .button {
+      border: 1px solid rgba(36, 49, 38, 0.2);
+      background: linear-gradient(180deg, #f9f0d9, #ead7b0);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 12px 16px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      box-shadow: 0 8px 18px rgba(95, 74, 32, 0.12);
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button.alt {
+      background: linear-gradient(180deg, #4f6e49, #355136);
+      color: #fbf6e9;
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: rgba(255, 250, 240, 0.82);
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .leaderboard-table th {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      background: rgba(63, 92, 58, 0.08);
+    }
+
+    .leaderboard-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .rank-pill {
+      display: inline-flex;
+      width: 34px;
+      height: 34px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(36, 49, 38, 0.16);
+      background: rgba(255, 250, 240, 0.94);
+      font-weight: 700;
+    }
+
+    .score-main {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .score-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .users-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .user-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 251, 243, 0.98), rgba(241, 231, 204, 0.98));
+      overflow: hidden;
+    }
+
+    .user-card-header {
+      padding: 18px 18px 14px;
+      background: linear-gradient(180deg, rgba(63, 92, 58, 0.1), rgba(63, 92, 58, 0));
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .user-name {
+      margin: 0;
+      font-size: 1.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .user-total {
+      text-align: right;
+    }
+
+    .user-total strong {
+      display: block;
+      font-size: 1.2rem;
+    }
+
+    .pick-list {
+      list-style: none;
+      margin: 0;
+      padding: 8px 18px 18px;
+    }
+
+    .pick-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 104px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px dashed rgba(36, 49, 38, 0.14);
+    }
+
+    .pick-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .pick-name {
+      font-weight: 700;
+    }
+
+    .pick-owner {
+      display: block;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-top: 2px;
+    }
+
+    .score-input {
+      width: 100%;
+      text-align: center;
+      font-weight: 700;
+      border-radius: 14px;
+      padding: 11px 12px;
+    }
+
+    .score-chip {
+      display: inline-flex;
+      width: 100%;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(36, 49, 38, 0.12);
+      background: #fffaf0;
+      font-weight: 700;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    @media (max-width: 820px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .leaderboard-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 20px, 1200px);
+        padding-top: 20px;
+      }
+
+      .hero,
+      .panel {
+        border-radius: 20px;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .pick-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen" aria-live="polite">
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2 class="loading-title">Fetching Live Scores</h2>
+      <p class="loading-copy" id="loadingMessage">
+        Pulling the latest Masters numbers from ESPN and matching them to your picks.
+      </p>
+    </div>
+  </div>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-brand">
+            <div class="masters-mark" aria-hidden="true">
+              <img src="./masters-logo.png.webp" alt="">
+            </div>
+            <div class="eyebrow">Augusta Pool Ledger</div>
+          </div>
+          <h1>Masters 2026 Pick Tracker</h1>
+          <p>
+            Update each golfer as scores change, and the board automatically totals every user's four picks
+            from lowest to highest. Everything runs in the browser and saves on this device.
+          </p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-label">Users</div>
+            <div class="stat-value" id="userCount">10</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Golfers</div>
+            <div class="stat-value" id="golferCount">40</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Scoring Mode</div>
+            <div class="stat-value" id="heroMode">To Par</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Last Saved</div>
+            <div class="stat-value" id="lastSaved">Not yet</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Leaderboard</h2>
+          <p class="panel-subtitle">
+            Choose one scoring format and use it consistently. The totals rank your pool automatically.
+          </p>
+        </div>
+        <div class="toolbar">
+          <select class="mode-select" id="scoreMode">
+            <option value="toPar">Leaderboard score: to par</option>
+            <option value="strokes">Leaderboard score: total strokes</option>
+          </select>
+          <button class="button alt" id="refreshScores">Refresh ESPN Scores</button>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <div class="status-badge" id="feedStatus">
+          <span class="status-dot"></span>
+          <span id="feedStatusText">Waiting for ESPN fetch</span>
+        </div>
+        <span id="feedDetail">The page refreshes scores on load and when you press refresh.</span>
+      </div>
+
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>User</th>
+            <th>Total</th>
+            <th>Updated</th>
+            <th>Best Pick</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardBody"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Scorekeeper</h2>
+          <p class="panel-subtitle">
+            Enter a live number for each golfer. Blank values count as not updated yet.
+          </p>
+        </div>
+      </div>
+      <div class="users-grid" id="usersGrid"></div>
+    </section>
+
+    <section class="panel footer-note">
+      <strong class="accent">Deploy note:</strong>
+      This page is a single static file, so it is a good fit for Vercel's Hobby plan. If you keep it browser-only,
+      there is no server cost. Automatic live scoring from a real tournament feed would require a public API or a
+      small backend/proxy if the score source blocks browser requests.
+    </section>
+  </main>
+
+  <script>
+    const users = [
+      { name: "Zac", picks: ["S Scheffler", "SW Kim", "V Hovland", "N Hojgaard"] },
+      { name: "Ben", picks: ["B DeChambeau", "B Koepka", "C Gotterup", "P Cantlay"] },
+      { name: "Grier", picks: ["R McIlroy", "S Lowry", "R Henley", "T Hatton"] },
+      { name: "Fehrenbach", picks: ["J Rahm", "P Reed", "J Spieth", "K Kitayama"] },
+      { name: "William", picks: ["H Matsuyama", "J Thomas", "S Straka", "R Gerard"] },
+      { name: "Daniel", picks: ["C Young", "J Spaun", "B Griffin", "K Bradley"] },
+      { name: "Adam", picks: ["X Schauffele", "C Morikawa", "A Scott", "S Burns"] },
+      { name: "Renesa", picks: ["M Fitzpatrick", "M W Lee", "M McNealy", "J Day"] },
+      { name: "Fronce", picks: ["L Aberg", "J Rose", "J Bridgeman", "A Noren"] },
+      { name: "Hummy", picks: ["T Fleetwood", "R McIntyre", "A Bhatia", "H English"] }
+    ];
+
+    const defaultScores = {
+      "S Scheffler": "",
+      "SW Kim": "",
+      "V Hovland": "",
+      "N Hojgaard": "",
+      "B DeChambeau": "",
+      "B Koepka": "",
+      "C Gotterup": "",
+      "P Cantlay": "",
+      "R McIlroy": "",
+      "S Lowry": "",
+      "R Henley": "",
+      "T Hatton": "",
+      "J Rahm": "",
+      "P Reed": "",
+      "J Spieth": "",
+      "K Kitayama": "",
+      "H Matsuyama": "",
+      "J Thomas": "",
+      "S Straka": "",
+      "R Gerard": "",
+      "C Young": "",
+      "J Spaun": "",
+      "B Griffin": "",
+      "K Bradley": "",
+      "X Schauffele": "",
+      "C Morikawa": "",
+      "A Scott": "",
+      "S Burns": "",
+      "M Fitzpatrick": "",
+      "M W Lee": "",
+      "M McNealy": "",
+      "J Day": "",
+      "L Aberg": "",
+      "J Rose": "",
+      "J Bridgeman": "",
+      "A Noren": "",
+      "T Fleetwood": "",
+      "R McIntyre": "",
+      "A Bhatia": "",
+      "H English": ""
+    };
+
+    const storageKey = "masters-2026-pick-tracker";
+    const modeKey = "masters-2026-score-mode";
+    const savedState = JSON.parse(localStorage.getItem(storageKey) || "null");
+    const scores = { ...defaultScores, ...(savedState || {}) };
+    const savedMode = localStorage.getItem(modeKey) || "toPar";
+    const espnLeaderboardUrl = "https://site.web.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga";
+
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    const usersGrid = document.getElementById("usersGrid");
+    const scoreModeSelect = document.getElementById("scoreMode");
+    const lastSaved = document.getElementById("lastSaved");
+    const heroMode = document.getElementById("heroMode");
+    const loadingScreen = document.getElementById("loadingScreen");
+    const loadingMessage = document.getElementById("loadingMessage");
+    const refreshScoresButton = document.getElementById("refreshScores");
+    const feedStatus = document.getElementById("feedStatus");
+    const feedStatusText = document.getElementById("feedStatusText");
+    const feedDetail = document.getElementById("feedDetail");
+
+    let isInitialLoad = true;
+
+    document.getElementById("userCount").textContent = users.length;
+    document.getElementById("golferCount").textContent = Object.keys(defaultScores).length;
+    scoreModeSelect.value = savedMode;
+
+    function normalizeName(name) {
+      return name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ø/g, "o")
+        .replace(/Ø/g, "o")
+        .replace(/æ/g, "ae")
+        .replace(/Æ/g, "ae")
+        .toLowerCase()
+        .replace(/\./g, "")
+        .replace(/-/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    const allGolfers = [...new Set(users.flatMap((user) => user.picks))];
+    const golferAliases = Object.fromEntries(allGolfers.map((golfer) => [golfer, new Set([normalizeName(golfer)])]));
+
+    [
+      ["S Scheffler", ["scottie scheffler"]],
+      ["SW Kim", ["si woo kim", "siwoo kim"]],
+      ["V Hovland", ["viktor hovland"]],
+      ["N Hojgaard", ["nicolai hojgaard"]],
+      ["B DeChambeau", ["bryson dechambeau"]],
+      ["B Koepka", ["brooks koepka"]],
+      ["C Gotterup", ["chris gotterup"]],
+      ["P Cantlay", ["patrick cantlay"]],
+      ["R McIlroy", ["rory mcilroy"]],
+      ["S Lowry", ["shane lowry"]],
+      ["R Henley", ["russell henley"]],
+      ["T Hatton", ["tyrrell hatton"]],
+      ["J Rahm", ["jon rahm"]],
+      ["P Reed", ["patrick reed"]],
+      ["J Spieth", ["jordan spieth"]],
+      ["K Kitayama", ["kurt kitayama"]],
+      ["H Matsuyama", ["hideki matsuyama"]],
+      ["J Thomas", ["justin thomas"]],
+      ["S Straka", ["sepp straka"]],
+      ["R Gerard", ["ryan gerard"]],
+      ["C Young", ["cameron young"]],
+      ["J Spaun", ["j j spaun", "jj spaun"]],
+      ["B Griffin", ["ben griffin"]],
+      ["K Bradley", ["keegan bradley"]],
+      ["X Schauffele", ["xander schauffele"]],
+      ["C Morikawa", ["collin morikawa"]],
+      ["A Scott", ["adam scott"]],
+      ["S Burns", ["sam burns"]],
+      ["M Fitzpatrick", ["matt fitzpatrick", "matthew fitzpatrick"]],
+      ["M W Lee", ["min woo lee"]],
+      ["M McNealy", ["maverick mcnealy"]],
+      ["J Day", ["jason day"]],
+      ["L Aberg", ["ludvig aberg", "ludvig a berg"]],
+      ["J Rose", ["justin rose"]],
+      ["J Bridgeman", ["jacob bridgeman"]],
+      ["A Noren", ["alex noren"]],
+      ["T Fleetwood", ["tommy fleetwood"]],
+      ["R McIntyre", ["robert macintyre", "bob macintyre"]],
+      ["A Bhatia", ["akshay bhatia"]],
+      ["H English", ["harris english"]]
+    ].forEach(([golfer, aliases]) => aliases.forEach((alias) => golferAliases[golfer].add(normalizeName(alias))));
+
+    function getBestMatchingGolfer(espnName) {
+      const normalized = normalizeName(espnName);
+      return allGolfers.find((golfer) => golferAliases[golfer].has(normalized)) || null;
+    }
+
+    function showLoading(message) {
+      loadingMessage.textContent = message;
+      loadingScreen.classList.remove("hidden");
+    }
+
+    function hideLoading() {
+      loadingScreen.classList.add("hidden");
+    }
+
+    function setFeedStatus(state, title, detail) {
+      feedStatus.className = `status-badge ${state}`;
+      feedStatusText.textContent = title;
+      feedDetail.textContent = detail;
+    }
+
+    function parseScoreValue(scoreDisplay) {
+      if (scoreDisplay === undefined || scoreDisplay === null) return null;
+      const raw = String(scoreDisplay).trim().toUpperCase();
+      if (!raw || raw === "--") return null;
+      if (raw === "E") return 0;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    async function fetchEspnScores() {
+      const loadingCopy = isInitialLoad
+        ? "Pulling the latest Masters numbers from ESPN and matching them to your picks."
+        : "Refreshing the latest scores from ESPN.";
+      showLoading(loadingCopy);
+      refreshScoresButton.disabled = true;
+      setFeedStatus("syncing", "Fetching ESPN feed", "Looking for the current Masters leaderboard.");
+
+      try {
+        const response = await fetch(espnLeaderboardUrl, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`ESPN request failed with ${response.status}`);
+        }
+
+        const data = await response.json();
+        const events = Array.isArray(data.events) ? data.events : [];
+        const mastersEvent =
+          events.find((event) => /masters/i.test(event.name || "")) ||
+          events.find((event) => /masters/i.test(event.shortName || "")) ||
+          events[0];
+
+        if (!mastersEvent || !mastersEvent.competitions || !mastersEvent.competitions[0]) {
+          throw new Error("No golf competition data returned by ESPN.");
+        }
+
+        const competition = mastersEvent.competitions[0];
+        const competitors = Array.isArray(competition.competitors) ? competition.competitors : [];
+        let matched = 0;
+        const matchedGolfers = new Set();
+
+        competitors.forEach((competitor) => {
+          const espnName = competitor.athlete && competitor.athlete.displayName;
+          const pickName = espnName ? getBestMatchingGolfer(espnName) : null;
+          const value = parseScoreValue(
+            competitor.score && (
+              competitor.score.displayValue ??
+              competitor.score.value ??
+              competitor.score
+            )
+          );
+
+          if (!pickName || value === null) return;
+          scores[pickName] = value;
+          matchedGolfers.add(pickName);
+          matched += 1;
+        });
+
+        storeState();
+        render();
+
+        const eventName = mastersEvent.name || mastersEvent.shortName || "Current PGA event";
+        setFeedStatus(
+          "live",
+          "ESPN scores loaded",
+          `${eventName}. Matched ${matched} of ${allGolfers.length} picked golfers.`
+        );
+      } catch (error) {
+        console.error(error);
+        setFeedStatus(
+          "error",
+          "ESPN fetch failed",
+          "Keeping saved/manual scores. ESPN may be blocking browser access or not exposing the event yet."
+        );
+      } finally {
+        refreshScoresButton.disabled = false;
+        hideLoading();
+        isInitialLoad = false;
+      }
+    }
+
+    function formatTotal(value) {
+      const mode = scoreModeSelect.value;
+      if (Number.isNaN(value)) return "-";
+      if (mode === "toPar") {
+        if (value === 0) return "E";
+        return value > 0 ? `+${value}` : `${value}`;
+      }
+      return `${value}`;
+    }
+
+    function storeState() {
+      localStorage.setItem(storageKey, JSON.stringify(scores));
+      localStorage.setItem(modeKey, scoreModeSelect.value);
+      const stamp = new Date();
+      lastSaved.textContent = stamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      heroMode.textContent = scoreModeSelect.value === "toPar" ? "To Par" : "Strokes";
+    }
+
+    function renderUsers() {
+      usersGrid.innerHTML = users.map((user) => {
+        const total = user.picks.reduce((sum, golfer) => {
+          const value = Number(scores[golfer]);
+          return sum + (Number.isFinite(value) ? value : 0);
+        }, 0);
+        const updatedCount = user.picks.filter((golfer) => scores[golfer] !== "").length;
+
+        const picksMarkup = user.picks.map((golfer) => `
+          <li class="pick-item">
+            <div>
+              <span class="pick-name">${golfer}</span>
+              <span class="pick-owner">${updatedCount}/4 updated</span>
+            </div>
+            <span class="score-chip" aria-label="${golfer} score">${scores[golfer] === "" ? "-" : formatTotal(Number(scores[golfer]))}</span>
+          </li>
+        `).join("");
+
+        return `
+          <article class="user-card">
+            <div class="user-card-header">
+              <h3 class="user-name">${user.name}</h3>
+              <div class="user-total">
+                <span class="score-meta">Pool total</span>
+                <strong>${formatTotal(total)}</strong>
+              </div>
+            </div>
+            <ol class="pick-list">${picksMarkup}</ol>
+          </article>
+        `;
+      }).join("");
+
+    }
+
+    function renderLeaderboard() {
+      const standings = users.map((user) => {
+        const scoredPicks = user.picks
+          .map((golfer) => ({ golfer, value: Number(scores[golfer]) }))
+          .filter((entry) => Number.isFinite(entry.value));
+
+        const total = scoredPicks.reduce((sum, entry) => sum + entry.value, 0);
+        const bestPick = scoredPicks.sort((a, b) => a.value - b.value)[0];
+
+        return {
+          name: user.name,
+          total,
+          updated: scoredPicks.length,
+          bestPick: bestPick ? `${bestPick.golfer} (${formatTotal(bestPick.value)})` : "No scores yet"
+        };
+      }).sort((a, b) => a.total - b.total || b.updated - a.updated || a.name.localeCompare(b.name));
+
+      leaderboardBody.innerHTML = standings.map((entry, index) => `
+        <tr>
+          <td><span class="rank-pill">${index + 1}</span></td>
+          <td>${entry.name}</td>
+          <td><span class="score-main">${formatTotal(entry.total)}</span></td>
+          <td>${entry.updated}/4</td>
+          <td>${entry.bestPick}</td>
+        </tr>
+      `).join("");
+    }
+
+    function render() {
+      renderLeaderboard();
+      renderUsers();
+      heroMode.textContent = scoreModeSelect.value === "toPar" ? "To Par" : "Strokes";
+    }
+
+    scoreModeSelect.addEventListener("change", () => {
+      storeState();
+      render();
+    });
+
+    refreshScoresButton.addEventListener("click", () => {
+      fetchEspnScores();
+    });
+
+    storeState();
+    render();
+    fetchEspnScores();
+  </script>
+</body>
+</html>

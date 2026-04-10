@@ -420,6 +420,23 @@ h1 {
   border-bottom: none;
 }
 
+.leaderboard-table tbody tr.unpicked-threat td {
+  background: rgba(127, 47, 34, 0.08);
+}
+
+.live-golfer {
+  font-weight: 700;
+}
+
+.live-note {
+  display: block;
+  color: var(--accent);
+  font-size: 0.8rem;
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .rank-pill {
   display: inline-flex;
   width: 34px;

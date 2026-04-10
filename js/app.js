@@ -75,6 +75,7 @@ const savedMode = localStorage.getItem(modeKey) || "toPar";
 const espnLeaderboardUrl = "https://site.web.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga";
 
 const leaderboardBody = document.getElementById("leaderboardBody");
+const liveScoringBody = document.getElementById("liveScoringBody");
 const usersGrid = document.getElementById("usersGrid");
 const scoreModeSelect = document.getElementById("scoreMode");
 const lastSaved = document.getElementById("lastSaved");
@@ -87,6 +88,7 @@ const feedStatusText = document.getElementById("feedStatusText");
 const feedDetail = document.getElementById("feedDetail");
 
 let isInitialLoad = true;
+let liveGolfers = [];
 
 document.getElementById("userCount").textContent = users.length;
 document.getElementById("golferCount").textContent = Object.keys(defaultScores).length;
@@ -109,6 +111,13 @@ function normalizeName(name) {
 
 const allGolfers = [...new Set(users.flatMap((user) => user.picks))];
 const golferAliases = Object.fromEntries(allGolfers.map((golfer) => [golfer, new Set([normalizeName(golfer)])]));
+const golferOwners = users.reduce((acc, user) => {
+  user.picks.forEach((golfer) => {
+    if (!acc[golfer]) acc[golfer] = [];
+    acc[golfer].push(user.name);
+  });
+  return acc;
+}, {});
 
 [
   ["S Scheffler", ["scottie scheffler"]],
@@ -238,6 +247,12 @@ function parseRoundDetails(competitor) {
   return roundParts.join(" | ");
 }
 
+function parsePositionRank(position) {
+  if (!position) return Number.POSITIVE_INFINITY;
+  const match = String(position).match(/\d+/);
+  return match ? Number(match[0]) : Number.POSITIVE_INFINITY;
+}
+
 async function fetchEspnScores() {
   const loadingCopy = isInitialLoad
     ? "Pulling the latest Masters numbers from ESPN and matching them to your picks."
@@ -266,6 +281,7 @@ async function fetchEspnScores() {
     const competition = mastersEvent.competitions[0];
     const competitors = Array.isArray(competition.competitors) ? competition.competitors : [];
     let matched = 0;
+    liveGolfers = [];
 
     competitors.forEach((competitor) => {
       const espnName = competitor.athlete && competitor.athlete.displayName;
@@ -280,6 +296,20 @@ async function fetchEspnScores() {
       const position = parsePositionValue(competitor);
       const statusDetail = parseStatusDetail(competitor);
       const roundDetails = parseRoundDetails(competitor);
+      const owners = pickName ? (golferOwners[pickName] || []) : [];
+      const liveEntry = {
+        name: espnName || "Unknown Golfer",
+        position: position || "-",
+        positionRank: parsePositionRank(position),
+        score: value,
+        scoreDisplay: value === null ? "-" : formatTotal(value),
+        status: statusDetail || "Status unavailable",
+        rounds: roundDetails || "Round details unavailable",
+        pickedBy: owners.length ? owners.join(", ") : "Nobody",
+        unpickedTopTwenty: owners.length === 0 && parsePositionRank(position) <= 20
+      };
+
+      liveGolfers.push(liveEntry);
 
       if (!pickName || value === null) return;
       scores[pickName] = value;
@@ -398,8 +428,32 @@ function renderLeaderboard() {
   `).join("");
 }
 
+function renderLiveScoring() {
+  const sorted = [...liveGolfers].sort((a, b) =>
+    a.positionRank - b.positionRank ||
+    (Number.isFinite(a.score) ? a.score : Number.POSITIVE_INFINITY) -
+      (Number.isFinite(b.score) ? b.score : Number.POSITIVE_INFINITY) ||
+    a.name.localeCompare(b.name)
+  );
+
+  liveScoringBody.innerHTML = sorted.map((entry) => `
+    <tr class="${entry.unpickedTopTwenty ? "unpicked-threat" : ""}">
+      <td>${entry.position}</td>
+      <td>
+        <span class="live-golfer">${entry.name}</span>
+        ${entry.unpickedTopTwenty ? '<span class="live-note">Top 20 unpicked</span>' : ""}
+      </td>
+      <td><span class="score-main">${entry.scoreDisplay}</span></td>
+      <td>${entry.status}</td>
+      <td>${entry.rounds}</td>
+      <td>${entry.pickedBy}</td>
+    </tr>
+  `).join("");
+}
+
 function render() {
   renderLeaderboard();
+  renderLiveScoring();
   renderUsers();
   heroMode.textContent = scoreModeSelect.value === "toPar" ? "To Par" : "Strokes";
 }

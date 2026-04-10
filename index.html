@@ -104,6 +104,31 @@
       <div class="users-grid" id="usersGrid"></div>
     </section>
 
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Live Scoring</h2>
+          <p class="panel-subtitle">
+            Full Masters field from ESPN. Unpicked golfers in the top 20 are highlighted.
+          </p>
+        </div>
+      </div>
+
+      <table class="leaderboard-table live-table">
+        <thead>
+          <tr>
+            <th>Pos</th>
+            <th>Golfer</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th>Rounds</th>
+            <th>Picked By</th>
+          </tr>
+        </thead>
+        <tbody id="liveScoringBody"></tbody>
+      </table>
+    </section>
+
     <section class="panel footer-note">
       <strong class="accent">Deploy note:</strong>
       This page is a static frontend with browser-side ESPN fetching. If ESPN blocks browser requests in the future,

@@ -54,10 +54,17 @@ const defaultScores = {
   "H English": ""
 };
 
+const defaultPositions = Object.fromEntries(
+  Object.keys(defaultScores).map((golfer) => [golfer, ""])
+);
+
 const storageKey = "masters-2026-pick-tracker";
+const positionKey = "masters-2026-pick-positions";
 const modeKey = "masters-2026-score-mode";
 const savedState = JSON.parse(localStorage.getItem(storageKey) || "null");
+const savedPositions = JSON.parse(localStorage.getItem(positionKey) || "null");
 const scores = { ...defaultScores, ...(savedState || {}) };
+const positions = { ...defaultPositions, ...(savedPositions || {}) };
 const savedMode = localStorage.getItem(modeKey) || "toPar";
 const espnLeaderboardUrl = "https://site.web.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga";
 
@@ -169,6 +176,27 @@ function parseScoreValue(scoreDisplay) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parsePositionValue(competitor) {
+  const statusPosition = competitor.status?.position;
+  const raw =
+    statusPosition?.displayValue ??
+    statusPosition?.id ??
+    competitor.curatedRank?.displayValue ??
+    competitor.curatedRank?.current ??
+    competitor.place ??
+    competitor.order ??
+    competitor.position?.displayValue ??
+    competitor.position?.value ??
+    "";
+
+  if (raw === undefined || raw === null) return "";
+
+  const value = String(raw).trim().toUpperCase();
+  if (!value || value === "--") return "";
+  if (statusPosition?.isTie && !value.startsWith("T")) return `T${value}`;
+  return value;
+}
+
 async function fetchEspnScores() {
   const loadingCopy = isInitialLoad
     ? "Pulling the latest Masters numbers from ESPN and matching them to your picks."
@@ -208,9 +236,11 @@ async function fetchEspnScores() {
           competitor.score
         )
       );
+      const position = parsePositionValue(competitor);
 
       if (!pickName || value === null) return;
       scores[pickName] = value;
+      positions[pickName] = position;
       matched += 1;
     });
 
@@ -249,6 +279,7 @@ function formatTotal(value) {
 
 function storeState() {
   localStorage.setItem(storageKey, JSON.stringify(scores));
+  localStorage.setItem(positionKey, JSON.stringify(positions));
   localStorage.setItem(modeKey, scoreModeSelect.value);
   const stamp = new Date();
   lastSaved.textContent = stamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -261,13 +292,12 @@ function renderUsers() {
       const value = Number(scores[golfer]);
       return sum + (Number.isFinite(value) ? value : 0);
     }, 0);
-    const updatedCount = user.picks.filter((golfer) => scores[golfer] !== "").length;
 
     const picksMarkup = user.picks.map((golfer) => `
       <li class="pick-item">
         <div>
           <span class="pick-name">${golfer}</span>
-          <span class="pick-owner">${updatedCount}/4 updated</span>
+          <span class="pick-owner">${positions[golfer] ? `Standing ${positions[golfer]}` : "Standing -"}</span>
         </div>
         <span class="score-chip" aria-label="${golfer} score">${scores[golfer] === "" ? "-" : formatTotal(Number(scores[golfer]))}</span>
       </li>
@@ -291,7 +321,7 @@ function renderUsers() {
 function renderLeaderboard() {
   const standings = users.map((user) => {
     const scoredPicks = user.picks
-      .map((golfer) => ({ golfer, value: Number(scores[golfer]) }))
+      .map((golfer) => ({ golfer, value: Number(scores[golfer]), position: positions[golfer] }))
       .filter((entry) => Number.isFinite(entry.value));
 
     const total = scoredPicks.reduce((sum, entry) => sum + entry.value, 0);
@@ -301,7 +331,9 @@ function renderLeaderboard() {
       name: user.name,
       total,
       updated: scoredPicks.length,
-      bestPick: bestPick ? `${bestPick.golfer} (${formatTotal(bestPick.value)})` : "No scores yet"
+      bestPick: bestPick
+        ? `${bestPick.golfer} (${formatTotal(bestPick.value)}) ${bestPick.position || "-"}`
+        : "No scores yet"
     };
   }).sort((a, b) => a.total - b.total || b.updated - a.updated || a.name.localeCompare(b.name));
 

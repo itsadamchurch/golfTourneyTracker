@@ -20,35 +20,31 @@
   <main class="page">
     <section class="hero">
       <div class="hero-grid">
-        <div>
-          <div class="hero-brand">
-            <div class="masters-mark" aria-hidden="true">
-              <img src="masters-logo.png.webp" alt="">
-            </div>
-            <div class="eyebrow">Augusta Pool Ledger</div>
-          </div>
+        <div class="hero-copy">
+          <div class="eyebrow">Augusta Pool Ledger</div>
           <h1>Masters 2026 Pick Tracker</h1>
-          <p>
-            Update each golfer as scores change, and the board automatically totals every user's four picks
-            from lowest to highest. Everything runs in the browser and saves on this device.
-          </p>
         </div>
-        <div class="hero-stats">
-          <div class="stat">
-            <div class="stat-label">Users</div>
-            <div class="stat-value" id="userCount">10</div>
+        <div class="hero-side">
+          <div class="masters-mark" aria-hidden="true">
+            <img src="masters-logo.png.webp" alt="">
           </div>
-          <div class="stat">
-            <div class="stat-label">Golfers</div>
-            <div class="stat-value" id="golferCount">40</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Scoring Mode</div>
-            <div class="stat-value" id="heroMode">To Par</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Last Saved</div>
-            <div class="stat-value" id="lastSaved">Not yet</div>
+          <div class="hero-stats">
+            <div class="stat">
+              <div class="stat-label">Users</div>
+              <div class="stat-value" id="userCount">10</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Golfers</div>
+              <div class="stat-value" id="golferCount">40</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Scoring Mode</div>
+              <div class="stat-value" id="heroMode">To Par</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Last Saved</div>
+              <div class="stat-value" id="lastSaved">Not yet</div>
+            </div>
           </div>
         </div>
       </div>
@@ -67,7 +63,10 @@
             <option value="toPar">Leaderboard score: to par</option>
             <option value="strokes">Leaderboard score: total strokes</option>
           </select>
-          <button class="button alt" id="refreshScores">Refresh ESPN Scores</button>
+          <button class="golf-refresh" id="refreshScores" aria-label="Refresh Scores" title="Refresh Scores">
+            <span class="golf-refresh-ball" aria-hidden="true"></span>
+            <span class="golf-refresh-label">Refresh Scores</span>
+          </button>
         </div>
       </div>
 

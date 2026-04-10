@@ -1,0 +1,336 @@
+const users = [
+  { name: "Zac", picks: ["S Scheffler", "SW Kim", "V Hovland", "N Hojgaard"] },
+  { name: "Ben", picks: ["B DeChambeau", "B Koepka", "C Gotterup", "P Cantlay"] },
+  { name: "Grier", picks: ["R McIlroy", "S Lowry", "R Henley", "T Hatton"] },
+  { name: "Fehrenbach", picks: ["J Rahm", "P Reed", "J Spieth", "K Kitayama"] },
+  { name: "William", picks: ["H Matsuyama", "J Thomas", "S Straka", "R Gerard"] },
+  { name: "Daniel", picks: ["C Young", "J Spaun", "B Griffin", "K Bradley"] },
+  { name: "Adam", picks: ["X Schauffele", "C Morikawa", "A Scott", "S Burns"] },
+  { name: "Renesa", picks: ["M Fitzpatrick", "M W Lee", "M McNealy", "J Day"] },
+  { name: "Fronce", picks: ["L Aberg", "J Rose", "J Bridgeman", "A Noren"] },
+  { name: "Hummy", picks: ["T Fleetwood", "R McIntyre", "A Bhatia", "H English"] }
+];
+
+const defaultScores = {
+  "S Scheffler": "",
+  "SW Kim": "",
+  "V Hovland": "",
+  "N Hojgaard": "",
+  "B DeChambeau": "",
+  "B Koepka": "",
+  "C Gotterup": "",
+  "P Cantlay": "",
+  "R McIlroy": "",
+  "S Lowry": "",
+  "R Henley": "",
+  "T Hatton": "",
+  "J Rahm": "",
+  "P Reed": "",
+  "J Spieth": "",
+  "K Kitayama": "",
+  "H Matsuyama": "",
+  "J Thomas": "",
+  "S Straka": "",
+  "R Gerard": "",
+  "C Young": "",
+  "J Spaun": "",
+  "B Griffin": "",
+  "K Bradley": "",
+  "X Schauffele": "",
+  "C Morikawa": "",
+  "A Scott": "",
+  "S Burns": "",
+  "M Fitzpatrick": "",
+  "M W Lee": "",
+  "M McNealy": "",
+  "J Day": "",
+  "L Aberg": "",
+  "J Rose": "",
+  "J Bridgeman": "",
+  "A Noren": "",
+  "T Fleetwood": "",
+  "R McIntyre": "",
+  "A Bhatia": "",
+  "H English": ""
+};
+
+const storageKey = "masters-2026-pick-tracker";
+const modeKey = "masters-2026-score-mode";
+const savedState = JSON.parse(localStorage.getItem(storageKey) || "null");
+const scores = { ...defaultScores, ...(savedState || {}) };
+const savedMode = localStorage.getItem(modeKey) || "toPar";
+const espnLeaderboardUrl = "https://site.web.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga";
+
+const leaderboardBody = document.getElementById("leaderboardBody");
+const usersGrid = document.getElementById("usersGrid");
+const scoreModeSelect = document.getElementById("scoreMode");
+const lastSaved = document.getElementById("lastSaved");
+const heroMode = document.getElementById("heroMode");
+const loadingScreen = document.getElementById("loadingScreen");
+const loadingMessage = document.getElementById("loadingMessage");
+const refreshScoresButton = document.getElementById("refreshScores");
+const feedStatus = document.getElementById("feedStatus");
+const feedStatusText = document.getElementById("feedStatusText");
+const feedDetail = document.getElementById("feedDetail");
+
+let isInitialLoad = true;
+
+document.getElementById("userCount").textContent = users.length;
+document.getElementById("golferCount").textContent = Object.keys(defaultScores).length;
+scoreModeSelect.value = savedMode;
+
+function normalizeName(name) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ø/g, "o")
+    .replace(/Ø/g, "o")
+    .replace(/æ/g, "ae")
+    .replace(/Æ/g, "ae")
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const allGolfers = [...new Set(users.flatMap((user) => user.picks))];
+const golferAliases = Object.fromEntries(allGolfers.map((golfer) => [golfer, new Set([normalizeName(golfer)])]));
+
+[
+  ["S Scheffler", ["scottie scheffler"]],
+  ["SW Kim", ["si woo kim", "siwoo kim"]],
+  ["V Hovland", ["viktor hovland"]],
+  ["N Hojgaard", ["nicolai hojgaard"]],
+  ["B DeChambeau", ["bryson dechambeau"]],
+  ["B Koepka", ["brooks koepka"]],
+  ["C Gotterup", ["chris gotterup"]],
+  ["P Cantlay", ["patrick cantlay"]],
+  ["R McIlroy", ["rory mcilroy"]],
+  ["S Lowry", ["shane lowry"]],
+  ["R Henley", ["russell henley"]],
+  ["T Hatton", ["tyrrell hatton"]],
+  ["J Rahm", ["jon rahm"]],
+  ["P Reed", ["patrick reed"]],
+  ["J Spieth", ["jordan spieth"]],
+  ["K Kitayama", ["kurt kitayama"]],
+  ["H Matsuyama", ["hideki matsuyama"]],
+  ["J Thomas", ["justin thomas"]],
+  ["S Straka", ["sepp straka"]],
+  ["R Gerard", ["ryan gerard"]],
+  ["C Young", ["cameron young"]],
+  ["J Spaun", ["j j spaun", "jj spaun"]],
+  ["B Griffin", ["ben griffin"]],
+  ["K Bradley", ["keegan bradley"]],
+  ["X Schauffele", ["xander schauffele"]],
+  ["C Morikawa", ["collin morikawa"]],
+  ["A Scott", ["adam scott"]],
+  ["S Burns", ["sam burns"]],
+  ["M Fitzpatrick", ["matt fitzpatrick", "matthew fitzpatrick"]],
+  ["M W Lee", ["min woo lee"]],
+  ["M McNealy", ["maverick mcnealy"]],
+  ["J Day", ["jason day"]],
+  ["L Aberg", ["ludvig aberg", "ludvig a berg"]],
+  ["J Rose", ["justin rose"]],
+  ["J Bridgeman", ["jacob bridgeman"]],
+  ["A Noren", ["alex noren"]],
+  ["T Fleetwood", ["tommy fleetwood"]],
+  ["R McIntyre", ["robert macintyre", "bob macintyre"]],
+  ["A Bhatia", ["akshay bhatia"]],
+  ["H English", ["harris english"]]
+].forEach(([golfer, aliases]) => aliases.forEach((alias) => golferAliases[golfer].add(normalizeName(alias))));
+
+function getBestMatchingGolfer(espnName) {
+  const normalized = normalizeName(espnName);
+  return allGolfers.find((golfer) => golferAliases[golfer].has(normalized)) || null;
+}
+
+function showLoading(message) {
+  loadingMessage.textContent = message;
+  loadingScreen.classList.remove("hidden");
+}
+
+function hideLoading() {
+  loadingScreen.classList.add("hidden");
+}
+
+function setFeedStatus(state, title, detail) {
+  feedStatus.className = `status-badge ${state}`;
+  feedStatusText.textContent = title;
+  feedDetail.textContent = detail;
+}
+
+function parseScoreValue(scoreDisplay) {
+  if (scoreDisplay === undefined || scoreDisplay === null) return null;
+  const raw = String(scoreDisplay).trim().toUpperCase();
+  if (!raw || raw === "--") return null;
+  if (raw === "E") return 0;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function fetchEspnScores() {
+  const loadingCopy = isInitialLoad
+    ? "Pulling the latest Masters numbers from ESPN and matching them to your picks."
+    : "Refreshing the latest scores from ESPN.";
+  showLoading(loadingCopy);
+  refreshScoresButton.disabled = true;
+  setFeedStatus("syncing", "Fetching ESPN feed", "Looking for the current Masters leaderboard.");
+
+  try {
+    const response = await fetch(espnLeaderboardUrl, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`ESPN request failed with ${response.status}`);
+    }
+
+    const data = await response.json();
+    const events = Array.isArray(data.events) ? data.events : [];
+    const mastersEvent =
+      events.find((event) => /masters/i.test(event.name || "")) ||
+      events.find((event) => /masters/i.test(event.shortName || "")) ||
+      events[0];
+
+    if (!mastersEvent || !mastersEvent.competitions || !mastersEvent.competitions[0]) {
+      throw new Error("No golf competition data returned by ESPN.");
+    }
+
+    const competition = mastersEvent.competitions[0];
+    const competitors = Array.isArray(competition.competitors) ? competition.competitors : [];
+    let matched = 0;
+
+    competitors.forEach((competitor) => {
+      const espnName = competitor.athlete && competitor.athlete.displayName;
+      const pickName = espnName ? getBestMatchingGolfer(espnName) : null;
+      const value = parseScoreValue(
+        competitor.score && (
+          competitor.score.displayValue ??
+          competitor.score.value ??
+          competitor.score
+        )
+      );
+
+      if (!pickName || value === null) return;
+      scores[pickName] = value;
+      matched += 1;
+    });
+
+    storeState();
+    render();
+
+    const eventName = mastersEvent.name || mastersEvent.shortName || "Current PGA event";
+    setFeedStatus(
+      "live",
+      "ESPN scores loaded",
+      `${eventName}. Matched ${matched} of ${allGolfers.length} picked golfers.`
+    );
+  } catch (error) {
+    console.error(error);
+    setFeedStatus(
+      "error",
+      "ESPN fetch failed",
+      "Keeping saved/manual scores. ESPN may be blocking browser access or not exposing the event yet."
+    );
+  } finally {
+    refreshScoresButton.disabled = false;
+    hideLoading();
+    isInitialLoad = false;
+  }
+}
+
+function formatTotal(value) {
+  const mode = scoreModeSelect.value;
+  if (Number.isNaN(value)) return "-";
+  if (mode === "toPar") {
+    if (value === 0) return "E";
+    return value > 0 ? `+${value}` : `${value}`;
+  }
+  return `${value}`;
+}
+
+function storeState() {
+  localStorage.setItem(storageKey, JSON.stringify(scores));
+  localStorage.setItem(modeKey, scoreModeSelect.value);
+  const stamp = new Date();
+  lastSaved.textContent = stamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  heroMode.textContent = scoreModeSelect.value === "toPar" ? "To Par" : "Strokes";
+}
+
+function renderUsers() {
+  usersGrid.innerHTML = users.map((user) => {
+    const total = user.picks.reduce((sum, golfer) => {
+      const value = Number(scores[golfer]);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+    const updatedCount = user.picks.filter((golfer) => scores[golfer] !== "").length;
+
+    const picksMarkup = user.picks.map((golfer) => `
+      <li class="pick-item">
+        <div>
+          <span class="pick-name">${golfer}</span>
+          <span class="pick-owner">${updatedCount}/4 updated</span>
+        </div>
+        <span class="score-chip" aria-label="${golfer} score">${scores[golfer] === "" ? "-" : formatTotal(Number(scores[golfer]))}</span>
+      </li>
+    `).join("");
+
+    return `
+      <article class="user-card">
+        <div class="user-card-header">
+          <h3 class="user-name">${user.name}</h3>
+          <div class="user-total">
+            <span class="score-meta">Pool total</span>
+            <strong>${formatTotal(total)}</strong>
+          </div>
+        </div>
+        <ol class="pick-list">${picksMarkup}</ol>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderLeaderboard() {
+  const standings = users.map((user) => {
+    const scoredPicks = user.picks
+      .map((golfer) => ({ golfer, value: Number(scores[golfer]) }))
+      .filter((entry) => Number.isFinite(entry.value));
+
+    const total = scoredPicks.reduce((sum, entry) => sum + entry.value, 0);
+    const bestPick = scoredPicks.sort((a, b) => a.value - b.value)[0];
+
+    return {
+      name: user.name,
+      total,
+      updated: scoredPicks.length,
+      bestPick: bestPick ? `${bestPick.golfer} (${formatTotal(bestPick.value)})` : "No scores yet"
+    };
+  }).sort((a, b) => a.total - b.total || b.updated - a.updated || a.name.localeCompare(b.name));
+
+  leaderboardBody.innerHTML = standings.map((entry, index) => `
+    <tr>
+      <td><span class="rank-pill">${index + 1}</span></td>
+      <td>${entry.name}</td>
+      <td><span class="score-main">${formatTotal(entry.total)}</span></td>
+      <td>${entry.updated}/4</td>
+      <td>${entry.bestPick}</td>
+    </tr>
+  `).join("");
+}
+
+function render() {
+  renderLeaderboard();
+  renderUsers();
+  heroMode.textContent = scoreModeSelect.value === "toPar" ? "To Par" : "Strokes";
+}
+
+scoreModeSelect.addEventListener("change", () => {
+  storeState();
+  render();
+});
+
+refreshScoresButton.addEventListener("click", () => {
+  fetchEspnScores();
+});
+
+storeState();
+render();
+fetchEspnScores();

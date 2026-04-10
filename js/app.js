@@ -192,6 +192,12 @@ function parseScoreValue(scoreDisplay) {
 }
 
 function parseTotalScoreValue(competitor) {
+  const scoreToPar = Array.isArray(competitor.statistics)
+    ? competitor.statistics.find((stat) => stat.name === "scoreToPar")
+    : null;
+  const parsedLiveScore = parseScoreValue(scoreToPar?.displayValue ?? scoreToPar?.value);
+  if (parsedLiveScore !== null) return parsedLiveScore;
+
   const totalScore =
     competitor.score?.displayValue ??
     competitor.score?.value ??

@@ -144,7 +144,6 @@ h1 {
   background:
     radial-gradient(circle at top, rgba(255, 246, 220, 0.18), transparent 28%),
     rgba(26, 36, 28, 0.86);
-  backdrop-filter: blur(4px);
   transition: opacity 220ms ease, visibility 220ms ease;
 }
 
